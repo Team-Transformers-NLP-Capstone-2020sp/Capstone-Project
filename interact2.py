@@ -155,6 +155,56 @@ def run():
         out_text = tokenizer.decode(out_ids, skip_special_tokens=True)
         print(out_text)
 
+def getModel():
+    parser = ArgumentParser()
+    parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
+    parser.add_argument("--dataset_cache", type=str, default='./dataset_cache', help="Path or url of the dataset cache")
+    parser.add_argument("--model", type=str, default="gpt2", help="Model type (openai-gpt or gpt2)", choices=['openai-gpt', 'gpt2'])  # anything besides gpt2 will load openai-gpt
+    parser.add_argument("--model_checkpoint", type=str, default="small", help="Path, url or short name of the model")
+    parser.add_argument("--max_history", type=int, default=4, help="Number of previous utterances to keep in history")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
+
+    parser.add_argument("--no_sample", action='store_true', help="Set to use greedy decoding instead of sampling")
+    parser.add_argument("--max_length", type=int, default=20, help="Maximum length of the output utterances")
+    parser.add_argument("--min_length", type=int, default=1, help="Minimum length of the output utterances")
+    parser.add_argument("--seed", type=int, default=0, help="Seed")
+    parser.add_argument("--temperature", type=int, default=0.7, help="Sampling softmax temperature")
+    parser.add_argument("--top_k", type=int, default=0, help="Filter top-k tokens before sampling (<=0: no filtering)")
+    parser.add_argument("--top_p", type=float, default=0.9, help="Nucleus filtering (top-p) before sampling (<=0.0: no filtering)")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__file__)
+    logger.info(pformat(args))
+
+    if args.model_checkpoint == "":
+        if args.model == 'gpt2':
+            raise ValueError("Interacting with GPT2 requires passing a finetuned model_checkpoint")
+        else:
+            args.model_checkpoint = download_pretrained_model()
+	
+	
+    if args.seed != 0:
+    	random.seed(args.seed)
+    	torch.random.manual_seed(args.seed)
+    	torch.cuda.manual_seed(args.seed)
+
+
+    logger.info("Get pretrained model and tokenizer")
+    tokenizer_class, model_class = (GPT2Tokenizer, GPT2LMHeadModel) if args.model == 'gpt2' else (OpenAIGPTTokenizer, OpenAIGPTLMHeadModel)
+    tokenizer = tokenizer_class.from_pretrained(args.model_checkpoint)
+    model = model_class.from_pretrained(args.model_checkpoint)
+    model.to(args.device)
+    add_special_tokens_(model, tokenizer)
+
+    logger.info("Sample a personality")
+    dataset = get_dataset(tokenizer, args.dataset_path, args.dataset_cache)
+    personalities = [dialog["personality"] for dataset in dataset.values() for dialog in dataset]
+    personality = random.choice(personalities)
+    logger.info("Selected personality: %s", tokenizer.decode(chain(*personality)))
+
+    return tokenizer, model 
+
 def webRun(raw_text, personality, history):
     parser = ArgumentParser()
     parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
@@ -209,7 +259,7 @@ def webRun(raw_text, personality, history):
     out_text = tokenizer.decode(out_ids, skip_special_tokens=True)
     return out_text, history
 
-def getPersonality():
+def webRun2(raw_text, personality, history, tokenizer, model):
     parser = ArgumentParser()
     parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
     parser.add_argument("--dataset_cache", type=str, default='./dataset_cache', help="Path or url of the dataset cache")
@@ -231,22 +281,39 @@ def getPersonality():
     logger = logging.getLogger(__file__)
     logger.info(pformat(args))
 
-    if args.model_checkpoint == "":
-        if args.model == 'gpt2':
-            raise ValueError("Interacting with GPT2 requires passing a finetuned model_checkpoint")
-        else:
-            args.model_checkpoint = download_pretrained_model()
-	
-    if args.seed != 0:
-    	random.seed(args.seed)
-    	torch.random.manual_seed(args.seed)
-    	torch.cuda.manual_seed(args.seed)
+    history.append(tokenizer.encode(raw_text))
+    history.append(tokenizer.encode("<sentiment>"))
+    history.append(tokenizer.encode("<negative>"))
+    with torch.no_grad():
+        out_ids = sample_sequence(personality, history, tokenizer, model, args)
+    history.pop()
+    history.pop()
+    history.append(out_ids)
+    history = history[-(2*args.max_history+1):]
+    out_text = tokenizer.decode(out_ids, skip_special_tokens=True)
+    return out_text, history
 
+def getPersonality(tokenizer):
+    parser = ArgumentParser()
+    parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
+    parser.add_argument("--dataset_cache", type=str, default='./dataset_cache', help="Path or url of the dataset cache")
+    parser.add_argument("--model", type=str, default="gpt2", help="Model type (openai-gpt or gpt2)", choices=['openai-gpt', 'gpt2'])  # anything besides gpt2 will load openai-gpt
+    parser.add_argument("--model_checkpoint", type=str, default="small", help="Path, url or short name of the model")
+    parser.add_argument("--max_history", type=int, default=4, help="Number of previous utterances to keep in history")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
 
-    logger.info("Get pretrained model and tokenizer")
-    tokenizer_class, model_class = (GPT2Tokenizer, GPT2LMHeadModel) if args.model == 'gpt2' else (OpenAIGPTTokenizer, OpenAIGPTLMHeadModel)
-    tokenizer = tokenizer_class.from_pretrained(args.model_checkpoint)
-    add_special_tokens_(None, tokenizer)
+    parser.add_argument("--no_sample", action='store_true', help="Set to use greedy decoding instead of sampling")
+    parser.add_argument("--max_length", type=int, default=20, help="Maximum length of the output utterances")
+    parser.add_argument("--min_length", type=int, default=1, help="Minimum length of the output utterances")
+    parser.add_argument("--seed", type=int, default=0, help="Seed")
+    parser.add_argument("--temperature", type=int, default=0.7, help="Sampling softmax temperature")
+    parser.add_argument("--top_k", type=int, default=0, help="Filter top-k tokens before sampling (<=0: no filtering)")
+    parser.add_argument("--top_p", type=float, default=0.9, help="Nucleus filtering (top-p) before sampling (<=0.0: no filtering)")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__file__)
+    logger.info(pformat(args))
 
     logger.info("Sample a personality")
     dataset = get_dataset(tokenizer, args.dataset_path, args.dataset_cache)

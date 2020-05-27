@@ -40,7 +40,7 @@ $(document).ready(function () {
         { scrollTop: $(".messages").prop("scrollHeight") },
         500
       );
-      $.get("/chat", info, function (data, status) {
+      $.get("/chat2", info, function (data, status) {
         data = JSON.parse(data);
         console.log(data);
         $("#message").html('<div class="message-inner">' + data[0] + "</div>");
