@@ -1,0 +1,62 @@
+<html><head>
+	<meta charset="utf-8">
+	<title>Depression Chatbot</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<link rel="stylesheet" href="/static/css/home.css">
+	<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans:400,700" rel="stylesheet">
+	<meta property="og:title" content="Hugging Face – ConvAI">
+	<meta property="og:type" content="website">
+	<meta name="description" content="🦄 Depression Chatbot">
+</head>
+<body>
+	<div class="header">
+		<div class="header-container">
+			<div class="title">
+				Depression Chatbot (powered by huggingface 🦄)
+			</div>
+			<div class="links">
+				<a target="_blank" href="https://github.com/Team-Transformers-NLP-Capstone-2020sp"><img src="/static/assets/iconmonstr-github-1.svg"></a>
+			</div>
+		</div>
+	</div>
+	
+	<div class="subheader">
+		<div class="container">
+			<div class="box box0">
+				<div class="clearfix">
+					<div class="title">Random personality</div>
+					<div class="links">
+						<a href="#" class="js-shuffle">Shuffle <img src="/static/assets/iconmonstr-media-control-55.svg"></a>
+					</div>
+				</div>
+				<div class="persona" id="persona">Loading</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="container">
+		<div class="chat-container">
+			<div class="messages-gradient"></div>
+			<div class="placeholder-start">
+				<div class="inner">
+					Start chatting with this model.
+				</div>
+			</div>
+			<div class="messages"></div>
+		</div>
+		<div class="chat-input">
+			<div class="input-wrapper">
+				<form class="js-form">
+					<div class="input-message-wrapper">
+						<input class="input-message" type="text" name="q" placeholder="Type a message..." autocomplete="off" autofocus="">
+					</div>
+					<button class="input-button">Send</button>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="static/js/home.js"></script>
+
+</body></html>
