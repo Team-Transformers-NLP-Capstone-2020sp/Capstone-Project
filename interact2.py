@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 from transformers import OpenAIGPTLMHeadModel, OpenAIGPTTokenizer, GPT2LMHeadModel, GPT2Tokenizer
 from train2 import SPECIAL_TOKENS, build_input_from_segments, add_special_tokens_
-from utils import get_dataset, download_pretrained_model
+from utils import get_dataset, download_pretrained_model, download_pretrained_model2
 
 def top_filtering(logits, top_k=0., top_p=0.9, threshold=-float('Inf'), filter_value=-float('Inf')):
     """ Filter a distribution of logits using top-k, top-p (nucleus) and/or threshold filtering
@@ -160,7 +160,7 @@ def webRun(raw_text, personality, history):
     parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
     parser.add_argument("--dataset_cache", type=str, default='./dataset_cache', help="Path or url of the dataset cache")
     parser.add_argument("--model", type=str, default="gpt2", help="Model type (openai-gpt or gpt2)", choices=['openai-gpt', 'gpt2'])  # anything besides gpt2 will load openai-gpt
-    parser.add_argument("--model_checkpoint", type=str, default="https://small-model.s3-us-west-2.amazonaws.com/", help="Path, url or short name of the model")
+    parser.add_argument("--model_checkpoint", type=str, default="small", help="Path, url or short name of the model")
     parser.add_argument("--max_history", type=int, default=4, help="Number of previous utterances to keep in history")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
 
@@ -177,7 +177,11 @@ def webRun(raw_text, personality, history):
     logger = logging.getLogger(__file__)
     logger.info(pformat(args))
 
-    args.model_checkpoint = download_pretrained_model2()
+    if args.model_checkpoint == "":
+        if args.model == 'gpt2':
+            raise ValueError("Interacting with GPT2 requires passing a finetuned model_checkpoint")
+        else:
+            args.model_checkpoint = download_pretrained_model()
 	
 	
     if args.seed != 0:
@@ -210,7 +214,7 @@ def getPersonality():
     parser.add_argument("--dataset_path", type=str, default="", help="Path or url of the dataset. If empty download from S3.")
     parser.add_argument("--dataset_cache", type=str, default='./dataset_cache', help="Path or url of the dataset cache")
     parser.add_argument("--model", type=str, default="gpt2", help="Model type (openai-gpt or gpt2)", choices=['openai-gpt', 'gpt2'])  # anything besides gpt2 will load openai-gpt
-    parser.add_argument("--model_checkpoint", type=str, default="https://small-model.s3-us-west-2.amazonaws.com/", help="Path, url or short name of the model")
+    parser.add_argument("--model_checkpoint", type=str, default="small", help="Path, url or short name of the model")
     parser.add_argument("--max_history", type=int, default=4, help="Number of previous utterances to keep in history")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
 
@@ -227,7 +231,11 @@ def getPersonality():
     logger = logging.getLogger(__file__)
     logger.info(pformat(args))
 
-    args.model_checkpoint = download_pretrained_model2()
+    if args.model_checkpoint == "":
+        if args.model == 'gpt2':
+            raise ValueError("Interacting with GPT2 requires passing a finetuned model_checkpoint")
+        else:
+            args.model_checkpoint = download_pretrained_model()
 	
     if args.seed != 0:
     	random.seed(args.seed)

@@ -1,3 +1,4 @@
 small/
 dataset_cache_GPT2Tokenizer
 small.tar.gz
+__pycache__/

@@ -15,7 +15,7 @@ from transformers import cached_path
 
 PERSONACHAT_URL = "https://s3.amazonaws.com/datasets.huggingface.co/personachat/personachat_self_original.json"
 HF_FINETUNED_MODEL = "https://s3.amazonaws.com/models.huggingface.co/transfer-learning-chatbot/gpt_personachat_cache.tar.gz"
-HF_FINETUNED_MODEL2 = "https://s3.amazonaws.com/models.huggingface.co/transfer-learning-chatbot/gpt_personachat_cache.tar.gz"
+HF_FINETUNED_MODEL2 = "https://team-transformers-depression-chatbot-model.s3-us-west-2.amazonaws.com/small.tar.gz"
 
 logger = logging.getLogger(__file__)
 
